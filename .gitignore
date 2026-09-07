@@ -1,0 +1,15 @@
+# Lokal installierte Python-Abhängigkeiten
+lib/
+
+# Testdateien enthalten MELCloud-Zugangsdaten
+test_login.py
+test_control.py
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Lokale Umgebungsdateien / Zugangsdaten
+.env
+.env.*
