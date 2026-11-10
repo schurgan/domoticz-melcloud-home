@@ -169,3 +169,9 @@ It has been tested with:
 This is an unofficial community plugin and is not affiliated with or endorsed by Mitsubishi Electric.
 
 MELCloud and MELCloud Home are trademarks of their respective owners.
+
+## Temperatur-API-Diagnose (Version 0.1.1)
+
+Die Plugin-Version 0.1.1 untersucht bei jedem regulären Abruf der MELCloud-Home-Context-API die Rohantwort auf temperatur- und sensorbezogene Felder. Relevante Gerätefelder, Settings und Capabilities werden ausschließlich über Domoticz-Debugmeldungen ausgegeben. Es werden keine zusätzlichen API-Abfragen ausgelöst und keine Steuerfunktionen verändert.
+
+Zum Auslesen der Diagnose in Domoticz den Debug-Modus des Hardware-Plugins vorübergehend auf **Basic Debugging** oder **All** stellen. Anschließend im Domoticz-Protokoll nach dem Text MELCloud API-Diagnose suchen.
