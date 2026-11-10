@@ -1,13 +1,13 @@
 # MELCloud Home Plugin for Domoticz
 # Based on the previous MELCloud Classic plugin
-# Version: 0.1.1
+# Version: 0.1.2
 #
 # MELCloud Home API via aiomelcloudhome 0.1.2
 # Python 3.11 compatible
 
 """
 <plugin key="MELCloudHome"
-        version="0.1.1"
+        version="0.1.2"
         name="MELCloud Home"
         author="schurgan / ChatGPT"
         description="Mitsubishi Electric MELCloud Home integration">
@@ -353,7 +353,7 @@ class BasePlugin:
 
         self.counter = 0
 
-        Domoticz.Log("MELCloud Home Plugin 0.1.1 started (Temperatur-API-Diagnose aktiv).")
+        Domoticz.Log("MELCloud Home Plugin 0.1.2 started (Temperatur-API-Diagnose aktiv).")
         Domoticz.Log(
             "Refresh interval: {} seconds".format(
                 self.refresh_seconds
