@@ -1,13 +1,13 @@
 # MELCloud Home Plugin for Domoticz
 # Based on the previous MELCloud Classic plugin
-# Version: 0.1.0
+# Version: 0.1.1
 #
 # MELCloud Home API via aiomelcloudhome 0.1.2
 # Python 3.11 compatible
 
 """
 <plugin key="MELCloudHome"
-        version="0.1.0"
+        version="0.1.1"
         name="MELCloud Home"
         author="schurgan / ChatGPT"
         description="Mitsubishi Electric MELCloud Home integration">
@@ -70,6 +70,66 @@ import Domoticz
 
 from aiohttp import ClientSession
 from aiomelcloudhome import MELCloudHome
+
+
+# ============================================================
+# MELCloud API-Diagnose (nur Debug-Ausgabe)
+# ============================================================
+
+class DiagnosticMELCloudHome(MELCloudHome):
+    """Protokolliert temperaturrelevante Rohfelder der Context-API.
+
+    Die Antwort wird unverändert an die ursprüngliche Bibliothek
+    zurückgegeben. Es werden weder Steuerbefehle noch zusätzliche
+    API-Abfragen ausgelöst.
+    """
+
+    TEMPERATURE_TERMS = (
+        "temp", "therm", "sensor", "coil", "pipe", "inlet", "outlet",
+        "supply", "return", "discharge", "suction", "air", "heat",
+    )
+
+    async def _request(self, uri, *, method='GET', params=None, json=None, timeout=None):
+        data = await super()._request(
+            uri, method=method, params=params, json=json, timeout=timeout
+        )
+        if uri.strip('/') == 'context' and isinstance(data, dict):
+            self._log_temperature_fields(data)
+        return data
+
+    @classmethod
+    def _is_temperature_field(cls, key):
+        key_lower = str(key).lower()
+        return any(term in key_lower for term in cls.TEMPERATURE_TERMS)
+
+    @classmethod
+    def _log_temperature_fields(cls, context):
+        buildings = list(context.get('buildings', []) or [])
+        buildings.extend(context.get('guestBuildings', []) or [])
+        for building in buildings:
+            for unit in building.get('airToAirUnits', []) or []:
+                unit_name = unit.get('givenDisplayName') or 'Unbenannt'
+                unit_id = unit.get('id', '?')
+                matches = []
+                for key, value in unit.items():
+                    if key not in ('settings', 'capabilities') and cls._is_temperature_field(key):
+                        matches.append('{}={!r}'.format(key, value))
+                for setting in unit.get('settings', []) or []:
+                    if isinstance(setting, dict):
+                        key = setting.get('name', '')
+                        if cls._is_temperature_field(key):
+                            matches.append('{}={!r}'.format(key, setting.get('value')))
+                capabilities = unit.get('capabilities') or {}
+                if isinstance(capabilities, dict):
+                    for key, value in capabilities.items():
+                        if cls._is_temperature_field(key):
+                            matches.append('capabilities.{}={!r}'.format(key, value))
+                if matches:
+                    message = ' | '.join(matches)
+                else:
+                    message = 'Keine zusätzlichen Temperatur-/Sensorfelder in der Context-Antwort.'
+                Domoticz.Debug('MELCloud API-Diagnose [{} / {}]: {}'.format(unit_name, unit_id, message))
+
 
 
 # ============================================================
@@ -257,7 +317,7 @@ class BasePlugin:
 
         self.counter = 0
 
-        Domoticz.Log("MELCloud Home Plugin 0.1.0 started.")
+        Domoticz.Log("MELCloud Home Plugin 0.1.1 started (Temperatur-API-Diagnose aktiv).")
         Domoticz.Log(
             "Refresh interval: {} seconds".format(
                 self.refresh_seconds
@@ -373,7 +433,7 @@ class BasePlugin:
 
         async with ClientSession() as session:
 
-            async with MELCloudHome(
+            async with DiagnosticMELCloudHome(
                 username=username,
                 password=password,
                 session=session,
