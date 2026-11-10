@@ -89,13 +89,49 @@ class DiagnosticMELCloudHome(MELCloudHome):
         "supply", "return", "discharge", "suction", "air", "heat",
     )
 
+    report_diagnostic_done = False
+
     async def _request(self, uri, *, method='GET', params=None, json=None, timeout=None):
         data = await super()._request(
             uri, method=method, params=params, json=json, timeout=timeout
         )
-        if uri.strip('/') == 'context' and isinstance(data, dict):
+        endpoint = uri.strip('/')
+        if endpoint == 'context' and isinstance(data, dict):
             self._log_temperature_fields(data)
+        elif endpoint == 'report/v1/trendsummary':
+            self._log_report_datasets(data, params)
         return data
+
+    @classmethod
+    def _log_report_datasets(cls, data, params):
+        unit_id = (params or {}).get('unitId', '?')
+        if not isinstance(data, list) or not data:
+            Domoticz.Debug(
+                'MELCloud Report-Diagnose [{}]: Keine Datensätze zurückgegeben.'.format(unit_id)
+            )
+            return
+        datasets = data[0].get('datasets', []) if isinstance(data[0], dict) else []
+        if not datasets:
+            Domoticz.Debug(
+                'MELCloud Report-Diagnose [{}]: Antwort enthält keine datasets.'.format(unit_id)
+            )
+            return
+        for dataset in datasets:
+            label = str(dataset.get('label', '?'))
+            points = dataset.get('data', []) or []
+            latest = points[-1].get('y') if points and isinstance(points[-1], dict) else None
+            if cls._is_temperature_field(label) or 'temperature' in label.lower():
+                Domoticz.Debug(
+                    'MELCloud Report-Diagnose [{}]: {} | letzter Wert={!r}'.format(
+                        unit_id, label, latest
+                    )
+                )
+            else:
+                Domoticz.Debug(
+                    'MELCloud Report-Diagnose [{}]: Dataset={} | letzter Wert={!r}'.format(
+                        unit_id, label, latest
+                    )
+                )
 
     @classmethod
     def _is_temperature_field(cls, key):
@@ -442,6 +478,21 @@ class BasePlugin:
                 context = await client.get_context()
 
                 found_units = []
+
+                # Der Report-Endpunkt wird nur einmal pro Plugin-Lauf
+                # je ATA-Innengerät abgefragt. Es werden keine Steuerdaten geändert.
+                if not DiagnosticMELCloudHome.report_diagnostic_done:
+                    for building in context.buildings:
+                        for report_unit in building.air_to_air_units:
+                            try:
+                                await client.get_outdoor_temperature(str(report_unit.id))
+                            except Exception as error:
+                                Domoticz.Debug(
+                                    'MELCloud Report-Diagnose [{}]: {}'.format(
+                                        report_unit.name, error
+                                    )
+                                )
+                    DiagnosticMELCloudHome.report_diagnostic_done = True
 
                 for building in context.buildings:
 
