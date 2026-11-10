@@ -79,9 +79,9 @@ from aiomelcloudhome import MELCloudHome
 class DiagnosticMELCloudHome(MELCloudHome):
     """Protokolliert temperaturrelevante Rohfelder der Context-API.
 
-    Die Antwort wird unverändert an die ursprüngliche Bibliothek
-    zurückgegeben. Es werden weder Steuerbefehle noch zusätzliche
-    API-Abfragen ausgelöst.
+    Context- und Report-Antworten werden unverändert an die Bibliothek
+    zurückgegeben. Zusätzlich wird der Report-Endpunkt einmalig je ATA-
+    Innengerät pro Plugin-Lauf abgefragt. Steuerbefehle bleiben unberührt.
     """
 
     TEMPERATURE_TERMS = (
